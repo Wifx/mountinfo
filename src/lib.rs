@@ -118,7 +118,9 @@ impl MountPoint {
         // The line format is:
         // <id> <parent_id> <major>:<minor> <root> <mount_point> <mount_options> <optional tags> "-" <fstype> <mount souce> <super options>
         // Ref: https://www.kernel.org/doc/Documentation/filesystems/proc.txt - /proc/<pid>/mountinfo - Information about mounts
-        let re = Regex::new(r"(\d*)\s(\d*)\s(\d*:\d*)\s([\S]*)\s([\S]*)\s([A-Za-z0-9,]*)\s([A-Za-z0-9:\s]*)\s\- ([\S]*)\s([\S]*)(.*)").unwrap();
+        let re = Regex::new(
+            r"(\d*)\s(\d*)\s(\d*:\d*)\s([\S]*)\s([\S]*)\s([A-Za-z0-9,]*)\s([A-Za-z0-9:\s]*)\- ([\S]*)\s([\S]*)(.*)",
+        ).unwrap();
         if !re.is_match(line) {
             return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid format"));
         }
