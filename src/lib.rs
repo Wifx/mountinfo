@@ -114,17 +114,11 @@ pub struct MountPoint {
 
 impl MountPoint {
     /// Creates a new mount point from a line of the `/proc/self/mountinfo` file.
-    fn parse_proc_mountinfo_line(line: &String) -> Result<Self, io::Error> {
-        // The line format is:
-        // <id> <parent_id> <major>:<minor> <root> <mount_point> <mount_options> <optional tags> "-" <fstype> <mount souce> <super options>
-        // Ref: https://www.kernel.org/doc/Documentation/filesystems/proc.txt - /proc/<pid>/mountinfo - Information about mounts
-        let re = Regex::new(
-            r"(\d*)\s(\d*)\s(\d*:\d*)\s([\S]*)\s([\S]*)\s([A-Za-z0-9,]*)\s([A-Za-z0-9:\s]*)\- ([\S]*)\s([\S]*)(.*)",
-        ).unwrap();
-        if !re.is_match(line) {
+    fn parse_proc_mountinfo_line(line: &String, regex: &Regex) -> Result<Self, io::Error> {
+        if !regex.is_match(line) {
             return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid format"));
         }
-        let caps = re.captures(line).unwrap();
+        let caps = regex.captures(line).unwrap();
         Ok(MountPoint {
             id: Some(caps[1].parse::<u32>().unwrap()),
             parent_id: Some(caps[2].parse::<u32>().unwrap()),
@@ -236,8 +230,14 @@ impl MountInfo {
     ) -> Result<Vec<MountPoint>, std::io::Error> {
         let mut result = Vec::new();
         let reader = io::BufReader::new(file);
+        // The line format is:
+        // <id> <parent_id> <major>:<minor> <root> <mount_point> <mount_options> <optional tags> "-" <fstype> <mount souce> <super options>
+        // Ref: https://www.kernel.org/doc/Documentation/filesystems/proc.txt - /proc/<pid>/mountinfo - Information about mounts
+        let regex = Regex::new(
+            r"(\d*)\s(\d*)\s(\d*:\d*)\s([\S]*)\s([\S]*)\s([A-Za-z0-9,]*)\s([A-Za-z0-9:\s]*)\- ([\S]*)\s([\S]*)(.*)",
+        ).unwrap();
         for line in reader.lines() {
-            let mpoint = MountPoint::parse_proc_mountinfo_line(&line?)?;
+            let mpoint = MountPoint::parse_proc_mountinfo_line(&line?, &regex)?;
             result.push(mpoint);
         }
         Ok(result)
